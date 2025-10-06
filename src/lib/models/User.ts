@@ -19,8 +19,8 @@ const UserSchema = new Schema<IUser>({
   },
   password: {
     type: String,
-    required: true,
-    minlength: 6,
+    default: '', // Default to empty string for OAuth users
+    // Remove required validation since OAuth users don't have passwords
   },
   name: {
     type: String,

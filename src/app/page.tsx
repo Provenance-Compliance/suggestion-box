@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, signIn } from 'next-auth/react';
 import SuggestionForm from '@/components/SuggestionForm';
 import SuggestionList from '@/components/SuggestionList';
 import SuggestionDashboard from '@/components/SuggestionDashboard';
@@ -161,7 +161,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!session ? (
-          // Welcome Section with Login/Register Buttons
+          // Welcome Section with Microsoft Entra ID Login
           <div className="max-w-2xl mx-auto text-center">
             <div className="mb-12">
               <h2 className="text-4xl font-bold text-gray-900 mb-6">
@@ -175,25 +175,23 @@ export default function Home() {
             
             <div className="bg-white rounded-lg shadow-md p-8">
               <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Get Started
+                Organization Access Required
               </h3>
               <p className="text-gray-600 mb-8">
-                Sign in to submit suggestions or create a new account to get started.
+                This application is for organization members only. 
+                Please sign in with your Microsoft Entra ID account to access the suggestion box.
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
-                  href="/auth/signin"
+              <div className="flex justify-center">
+                <button
+                  onClick={() => signIn('azure-ad', { callbackUrl: '/' })}
                   className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                 >
-                  Sign In
-                </a>
-                <a
-                  href="/auth/signup"
-                  className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                >
-                  Create Account
-                </a>
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+                  </svg>
+                  Sign in with Microsoft Entra ID
+                </button>
               </div>
             </div>
           </div>
@@ -240,7 +238,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-500">
-            <p>&copy; 2024 Suggestion Box. Built with Next.js, MongoDB, and Auth.js.</p>
+            <p>&copy; 2024 Suggestion Box. Built with Next.js, MongoDB, and Microsoft Entra ID.</p>
           </div>
         </div>
       </footer>

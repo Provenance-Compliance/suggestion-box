@@ -1,53 +1,59 @@
 import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcrypt';
+import AzureADProvider from 'next-auth/providers/azure-ad';
 import connectDB from './mongodb';
 import User from './models/User';
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+    // Microsoft Entra ID - Only authentication method for internal organization
+    AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID!,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+      tenantId: process.env.AZURE_AD_TENANT_ID!,
+      authorization: {
+        params: {
+          scope: 'openid email profile User.Read',
+        },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        await connectDB();
-        
-        const user = await User.findOne({ email: credentials.email });
-        
-        if (!user) {
-          return null;
-        }
-
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-        
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
-      }
     })
   ],
   session: {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === 'azure-ad') {
+        await connectDB();
+        
+        // Check if user exists by email
+        const existingUser = await User.findOne({ email: user.email });
+        
+        if (!existingUser) {
+          // Create new user for Microsoft Entra ID
+          await User.create({
+            email: user.email!,
+            name: user.name,
+            password: '', // Empty password for OAuth users
+            role: 'user', // Default role
+          });
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
       if (user) {
         token.role = user.role;
       }
+      
+      // For Microsoft Entra ID users, fetch role from database
+      if (account?.provider === 'azure-ad' && user?.email) {
+        await connectDB();
+        const dbUser = await User.findOne({ email: user.email });
+        if (dbUser) {
+          token.role = dbUser.role;
+        }
+      }
+      
       return token;
     },
     async session({ session, token }) {
@@ -60,6 +66,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/auth/signin',
-    signUp: '/auth/signup',
+    // Remove signup page since users can only sign in via Microsoft Entra ID
   },
 };
