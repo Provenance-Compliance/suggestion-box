@@ -33,12 +33,16 @@ export async function GET(request: NextRequest) {
       pending: 0,
       approved: 0,
       rejected: 0,
-      'in-progress': 0,
+      inProgress: 0,
       completed: 0,
     };
 
     stats.forEach(stat => {
-      statusCounts[stat._id as keyof typeof statusCounts] = stat.count;
+      // Map database status values to response object keys
+      const statusKey = stat._id === 'in-progress' ? 'inProgress' : stat._id;
+      if (statusKey in statusCounts) {
+        statusCounts[statusKey as keyof typeof statusCounts] = stat.count;
+      }
       statusCounts.total += stat.count;
     });
 

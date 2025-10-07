@@ -39,7 +39,13 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ suggestion });
+    // Filter out submittedBy data for anonymous suggestions
+    const suggestionObj = suggestion.toObject();
+    if (suggestionObj.isAnonymous) {
+      delete suggestionObj.submittedBy;
+    }
+
+    return NextResponse.json({ suggestion: suggestionObj });
   } catch (error) {
     console.error('Error fetching suggestion:', error);
     return NextResponse.json(
@@ -83,9 +89,15 @@ export async function PUT(
       );
     }
 
+    // Filter out submittedBy data for anonymous suggestions
+    const suggestionObj = suggestion.toObject();
+    if (suggestionObj.isAnonymous) {
+      delete suggestionObj.submittedBy;
+    }
+
     return NextResponse.json({
       message: 'Suggestion updated successfully',
-      suggestion,
+      suggestion: suggestionObj,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -44,10 +44,19 @@ export async function GET(request: NextRequest) {
       .skip((page - 1) * limit)
       .limit(limit);
 
+    // Filter out submittedBy data for anonymous suggestions
+    const filteredSuggestions = suggestions.map(suggestion => {
+      const suggestionObj = suggestion.toObject();
+      if (suggestionObj.isAnonymous) {
+        delete suggestionObj.submittedBy;
+      }
+      return suggestionObj;
+    });
+
     const total = await Suggestion.countDocuments(filter);
 
     return NextResponse.json({
-      suggestions,
+      suggestions: filteredSuggestions,
       pagination: {
         page,
         limit,

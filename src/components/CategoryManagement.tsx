@@ -146,12 +146,12 @@ export default function CategoryManagement() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg  p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Category Management</h2>
+  
         <button
           onClick={handleCreate}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="flex items-center px-4 py-2 bg-[#4bdcf5] text-white rounded-md hover:bg-[#3bc4e0] transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Category
@@ -174,7 +174,7 @@ export default function CategoryManagement() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] focus:border-[#4bdcf5] text-gray-900"
                   placeholder="Category name"
                   required
                 />
@@ -223,7 +223,7 @@ export default function CategoryManagement() {
                 id="isActive"
                 checked={formData.isActive}
                 onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-[#4bdcf5] focus:ring-[#4bdcf5] border-gray-300 rounded"
               />
               <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
                 Active (can be selected for new suggestions)
@@ -287,7 +287,7 @@ export default function CategoryManagement() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleEdit(category)}
-                  className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                  className="p-2 text-gray-400 hover:text-[#4bdcf5] transition-colors"
                   title="Edit category"
                 >
                   <Edit3 className="h-4 w-4" />

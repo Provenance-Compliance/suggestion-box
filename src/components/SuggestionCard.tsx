@@ -15,6 +15,7 @@ import {
   Save,
   X
 } from 'lucide-react';
+import CommentSection from './CommentSection';
 
 interface SuggestionCardProps {
   suggestion: ISuggestion & { 
@@ -30,7 +31,7 @@ const statusConfig = {
   pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'Pending' },
   approved: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Approved' },
   rejected: { color: 'bg-red-100 text-red-800', icon: XCircle, label: 'Rejected' },
-  'in-progress': { color: 'bg-blue-100 text-blue-800', icon: AlertCircle, label: 'In Progress' },
+  'in-progress': { color: 'bg-[#4bdcf5]/10 text-[#4bdcf5]', icon: AlertCircle, label: 'In Progress' },
   completed: { color: 'bg-gray-100 text-gray-800', icon: CheckCircle, label: 'Completed' },
 };
 
@@ -129,7 +130,7 @@ export default function SuggestionCard({
                 {suggestion.status === 'approved' && (
                   <button
                     onClick={() => handleQuickStatusChange('in-progress')}
-                    className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md transition-colors"
+                    className="px-3 py-1 text-xs font-medium text-[#4bdcf5] bg-[#4bdcf5]/10 hover:bg-[#4bdcf5]/20 rounded-md transition-colors"
                     title="Start working on suggestion"
                   >
                     Start Work
@@ -147,7 +148,7 @@ export default function SuggestionCard({
                 
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                  className="p-2 text-gray-400 hover:text-[#4bdcf5] transition-colors"
                   title="Edit suggestion"
                 >
                   <Edit3 className="h-4 w-4" />
@@ -220,7 +221,6 @@ export default function SuggestionCard({
         </div>
         
         <div className="flex items-center">
-          <Clock className="h-4 w-4 mr-1" />
           <span>{formatDate(suggestion.createdAt)}</span>
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function SuggestionCard({
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] focus:border-[#4bdcf5] text-gray-900"
                 >
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -254,7 +254,7 @@ export default function SuggestionCard({
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] focus:border-[#4bdcf5] text-gray-900"
                   placeholder="Add admin notes..."
                 />
               </div>
@@ -271,6 +271,12 @@ export default function SuggestionCard({
           )}
         </div>
       )}
+
+      {/* Comments Section */}
+      <CommentSection 
+        suggestionId={suggestion._id.toString()} 
+        isAdmin={isAdmin} 
+      />
     </div>
   );
 }

@@ -72,9 +72,9 @@ export default function SuggestionDashboard() {
       title: 'Total Suggestions',
       value: stats.total,
       icon: TrendingUp,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'bg-[#4bdcf5]',
+      textColor: 'text-[#4bdcf5]',
+      bgColor: 'bg-[#4bdcf5]/10',
     },
     {
       title: 'Pending Review',
@@ -96,9 +96,9 @@ export default function SuggestionDashboard() {
       title: 'In Progress',
       value: stats.inProgress,
       icon: AlertCircle,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'bg-[#4bdcf5]',
+      textColor: 'text-[#4bdcf5]',
+      bgColor: 'bg-[#4bdcf5]/10',
     },
     {
       title: 'Completed',
@@ -166,28 +166,6 @@ export default function SuggestionDashboard() {
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Status Summary
-        </h3>
-        <div className="flex flex-wrap gap-3">
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-            {stats.pending} pending review
-          </span>
-          {isAdmin && stats.pending > 0 && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-              Action required
-            </span>
-          )}
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-            {stats.approved + stats.completed} approved/completed
-          </span>
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-            {stats.rejected} rejected
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
