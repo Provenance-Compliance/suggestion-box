@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { z } from 'zod';
 import connectDB from '@/lib/mongodb';
 import Suggestion from '@/lib/models/Suggestion';
+import User from '@/lib/models/User';
 import { authOptions } from '@/lib/auth';
 
 const suggestionSchema = z.object({
@@ -80,12 +81,21 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
+    // Find the user in the database to get their MongoDB ObjectId
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     const suggestion = await Suggestion.create({
       title,
       content,
       category,
       isAnonymous,
-      submittedBy: session.user.id,
+      submittedBy: user._id,
     });
 
     return NextResponse.json(
