@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ISuggestion } from '@/lib/models/Suggestion';
 import { 
   Clock, 
@@ -13,9 +13,10 @@ import {
   Edit3,
   Trash2,
   Save,
-  X
+  X,
+  ThumbsUp
 } from 'lucide-react';
-import CommentSection from './CommentSection';
+import CommentSection, { CommentButton } from './CommentSection';
 
 interface SuggestionCardProps {
   suggestion: ISuggestion & { 
@@ -47,6 +48,11 @@ export default function SuggestionCard({
   const [editStatus, setEditStatus] = useState(suggestion.status);
   const [editNotes, setEditNotes] = useState(suggestion.adminNotes || '');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [upvoteCount, setUpvoteCount] = useState((suggestion as any).upvoteCount || 0);
+  const [hasUpvoted, setHasUpvoted] = useState(false);
+  const [isUpvoting, setIsUpvoting] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   const StatusIcon = statusConfig[suggestion.status].icon;
 
@@ -84,6 +90,51 @@ export default function SuggestionCard({
     }
   };
 
+  // Fetch upvote data on component mount
+  useEffect(() => {
+    const fetchUpvoteData = async () => {
+      try {
+        const response = await fetch(`/api/suggestions/${(suggestion as any)._id}/upvote`);
+        if (response.ok) {
+          const data = await response.json();
+          setUpvoteCount(data.upvoteCount);
+          setHasUpvoted(data.hasUpvoted);
+        }
+      } catch (error) {
+        console.error('Error fetching upvote data:', error);
+      }
+    };
+
+    fetchUpvoteData();
+  }, [(suggestion as any)._id]);
+
+  // Handle comment count updates from CommentSection
+  const handleCommentCountChange = (count: number) => {
+    setCommentCount(count);
+  };
+
+  const handleUpvote = async () => {
+    if (isUpvoting) return;
+    
+    setIsUpvoting(true);
+    try {
+      const method = hasUpvoted ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/suggestions/${(suggestion as any)._id}/upvote`, {
+        method,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUpvoteCount(data.upvoteCount);
+        setHasUpvoted(!hasUpvoted);
+      }
+    } catch (error) {
+      console.error('Error upvoting suggestion:', error);
+    } finally {
+      setIsUpvoting(false);
+    }
+  };
+
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -98,9 +149,12 @@ export default function SuggestionCard({
     <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {suggestion.title}
-          </h3>
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 flex-1">
+              {suggestion.title}
+            </h3>
+            
+          </div>
           <p className="text-gray-700 mb-4">{suggestion.content}</p>
         </div>
         
@@ -272,10 +326,37 @@ export default function SuggestionCard({
         </div>
       )}
 
+      {/* Action Buttons */}
+      <div className="flex items-center space-x-2 mb-4">
+        {/* Upvote Button */}
+        <button
+          onClick={handleUpvote}
+          disabled={isUpvoting}
+          className={`flex items-center space-x-1 px-3 py-1 rounded-md transition-colors ${
+            hasUpvoted
+              ? 'bg-[#4bdcf5] text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          } ${isUpvoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={hasUpvoted ? 'Remove upvote' : 'Upvote this suggestion'}
+        >
+          <ThumbsUp className="h-4 w-4" />
+          <span className="text-sm font-medium">{upvoteCount}</span>
+        </button>
+
+        {/* Comments Button */}
+        <CommentButton 
+          commentCount={commentCount}
+          showComments={showComments}
+          onToggle={() => setShowComments(!showComments)}
+        />
+      </div>
+
       {/* Comments Section */}
       <CommentSection 
         suggestionId={suggestion._id.toString()} 
-        isAdmin={isAdmin} 
+        isAdmin={isAdmin}
+        showComments={showComments}
+        onCommentCountChange={handleCommentCountChange}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { z } from 'zod';
 import connectDB from '@/lib/mongodb';
 import Suggestion from '@/lib/models/Suggestion';
+import Upvote from '@/lib/models/Upvote';
 import { authOptions } from '@/lib/auth';
 
 const updateSchema = z.object({
@@ -39,11 +40,17 @@ export async function GET(
       );
     }
 
+    // Get upvote count for this suggestion
+    const upvoteCount = await Upvote.countDocuments({
+      suggestion: id,
+    });
+
     // Filter out submittedBy data for anonymous suggestions
     const suggestionObj = suggestion.toObject();
     if (suggestionObj.isAnonymous) {
       delete suggestionObj.submittedBy;
     }
+    suggestionObj.upvoteCount = upvoteCount;
 
     return NextResponse.json({ suggestion: suggestionObj });
   } catch (error) {
@@ -89,11 +96,17 @@ export async function PUT(
       );
     }
 
+    // Get upvote count for this suggestion
+    const upvoteCount = await Upvote.countDocuments({
+      suggestion: id,
+    });
+
     // Filter out submittedBy data for anonymous suggestions
     const suggestionObj = suggestion.toObject();
     if (suggestionObj.isAnonymous) {
       delete suggestionObj.submittedBy;
     }
+    suggestionObj.upvoteCount = upvoteCount;
 
     return NextResponse.json({
       message: 'Suggestion updated successfully',

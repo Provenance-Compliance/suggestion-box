@@ -15,12 +15,39 @@ interface Comment {
   };
 }
 
+interface CommentButtonProps {
+  commentCount: number;
+  showComments: boolean;
+  onToggle: () => void;
+}
+
 interface CommentSectionProps {
   suggestionId: string;
   isAdmin: boolean;
+  showComments: boolean;
+  onCommentCountChange?: (count: number) => void;
 }
 
-export default function CommentSection({ suggestionId, isAdmin }: CommentSectionProps) {
+// Comment Button Component
+export function CommentButton({ commentCount, showComments, onToggle }: CommentButtonProps) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`flex items-center space-x-1 px-3 py-1 rounded-md transition-colors ${
+        showComments
+          ? 'bg-[#4bdcf5] text-white'
+          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      }`}
+      title={showComments ? 'Hide comments' : 'Show comments'}
+    >
+      <MessageCircle className="h-4 w-4" />
+      <span className="text-sm font-medium">{commentCount}</span>
+    </button>
+  );
+}
+
+// Comment Section Component
+export default function CommentSection({ suggestionId, isAdmin, showComments, onCommentCountChange }: CommentSectionProps) {
   const { data: session } = useSession();
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentCount, setCommentCount] = useState(0);
@@ -28,12 +55,18 @@ export default function CommentSection({ suggestionId, isAdmin }: CommentSection
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isInternal, setIsInternal] = useState(false);
-  const [showComments, setShowComments] = useState(false);
 
   // Fetch comment count on component mount
   useEffect(() => {
     fetchCommentCount();
   }, [suggestionId]);
+
+  // Notify parent when comment count changes
+  useEffect(() => {
+    if (onCommentCountChange) {
+      onCommentCountChange(commentCount);
+    }
+  }, [commentCount, onCommentCountChange]);
 
   useEffect(() => {
     if (showComments) {
@@ -141,16 +174,7 @@ export default function CommentSection({ suggestionId, isAdmin }: CommentSection
   const internalComments = comments.filter(comment => comment.isInternal);
 
   return (
-    <div >
-      <button
-        onClick={() => setShowComments(!showComments)}
-        className="flex items-center text-sm text-gray-600 hover:text-[#4bdcf5] transition-colors"
-      >
-        <MessageCircle className="h-4 w-4 mr-2" />
-        {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
-        {showComments ? <EyeOff className="h-4 w-4 ml-2" /> : <Eye className="h-4 w-4 ml-2" />}
-      </button>
-
+    <div>
       {showComments && (
         <div className="mt-4 space-y-4">
           {/* Comments List */}

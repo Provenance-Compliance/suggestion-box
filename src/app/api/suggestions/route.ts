@@ -4,6 +4,7 @@ import { z } from 'zod';
 import connectDB from '@/lib/mongodb';
 import Suggestion from '@/lib/models/Suggestion';
 import User from '@/lib/models/User';
+import Upvote from '@/lib/models/Upvote';
 import { authOptions } from '@/lib/auth';
 
 const suggestionSchema = z.object({
@@ -44,12 +45,25 @@ export async function GET(request: NextRequest) {
       .skip((page - 1) * limit)
       .limit(limit);
 
-    // Filter out submittedBy data for anonymous suggestions
+    // Get upvote counts for all suggestions
+    const suggestionIds = suggestions.map(s => s._id);
+    const upvoteCounts = await Upvote.aggregate([
+      { $match: { suggestion: { $in: suggestionIds } } },
+      { $group: { _id: '$suggestion', count: { $sum: 1 } } }
+    ]);
+    
+    const upvoteMap = new Map();
+    upvoteCounts.forEach(upvote => {
+      upvoteMap.set(upvote._id.toString(), upvote.count);
+    });
+
+    // Filter out submittedBy data for anonymous suggestions and add upvote counts
     const filteredSuggestions = suggestions.map(suggestion => {
       const suggestionObj = suggestion.toObject();
       if (suggestionObj.isAnonymous) {
         delete suggestionObj.submittedBy;
       }
+      suggestionObj.upvoteCount = upvoteMap.get(suggestion._id.toString()) || 0;
       return suggestionObj;
     });
 
