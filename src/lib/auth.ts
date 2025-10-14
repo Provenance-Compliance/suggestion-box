@@ -15,6 +15,15 @@ export const authOptions: NextAuthOptions = {
           scope: 'openid email profile User.Read',
         },
       },
+      // Add profile mapping to ensure we get all available fields
+      profile(profile) {
+        return {
+          id: profile.sub || profile.oid,
+          name: profile.name || profile.displayName || profile.given_name + ' ' + profile.family_name,
+          email: profile.email || profile.mail || profile.userPrincipalName || profile.preferred_username,
+          image: profile.picture,
+        };
+      },
     })
   ],
   session: {
@@ -25,17 +34,37 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider === 'azure-ad') {
         await connectDB();
         
+        // Try multiple sources for email (Azure AD can return it in different places)
+        const email = user.email || 
+                      profile?.email || 
+                      profile?.mail || 
+                      profile?.userPrincipalName ||
+                      profile?.preferred_username;
+        
+        if (!email) {
+          console.error('Azure AD sign-in failed: No email found in any source');
+          return false;
+        }
+        
+        // Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+        
         // Check if user exists by email
-        const existingUser = await User.findOne({ email: user.email });
+        const existingUser = await User.findOne({ email: normalizedEmail });
         
         if (!existingUser) {
-          // Create new user for Microsoft Entra ID
-          await User.create({
-            email: user.email!,
-            name: user.name,
-            password: '', // Empty password for OAuth users
-            role: 'user', // Default role
-          });
+          try {
+            // Create new user for Microsoft Entra ID
+            await User.create({
+              email: normalizedEmail,
+              name: user.name || profile?.displayName || profile?.name || 'Unknown User',
+              password: '', // Empty password for OAuth users
+              role: 'user', // Default role
+            });
+          } catch (error) {
+            console.error('Failed to create user:', error);
+            return false;
+          }
         }
       }
       return true;
