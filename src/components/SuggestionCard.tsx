@@ -166,7 +166,7 @@ export default function SuggestionCard({
                 {suggestion.status === 'pending' && (
                   <button
                     onClick={() => handleQuickStatusChange('approved')}
-                    className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
+                    className="px-3 py-1 text-sm font-bold text-[#4bdcf5] bg-[#4bdcf5]/10 hover:bg-[#4bdcf5] hover:text-white rounded-md transition-colors"
                     title="Approve suggestion"
                   >
                     Approve
@@ -175,7 +175,7 @@ export default function SuggestionCard({
                 {suggestion.status === 'pending' && (
                   <button
                     onClick={() => handleQuickStatusChange('rejected')}
-                    className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                    className="px-3 py-1 text-sm font-bold text-[#472d72] bg-[#472d72]/10 hover:bg-[#472d72] hover:text-white rounded-md transition-colors"
                     title="Reject suggestion"
                   >
                     Reject
@@ -184,7 +184,7 @@ export default function SuggestionCard({
                 {suggestion.status === 'approved' && (
                   <button
                     onClick={() => handleQuickStatusChange('in-progress')}
-                    className="px-3 py-1 text-xs font-medium text-[#4bdcf5] bg-[#4bdcf5]/10 hover:bg-[#4bdcf5]/20 rounded-md transition-colors"
+                    className="px-3 py-1 text-xs font-bold text-[#4bdcf5] bg-[#4bdcf5]/10 hover:bg-[#4bdcf5]/20 rounded-md transition-colors"
                     title="Start working on suggestion"
                   >
                     Start Work
@@ -193,7 +193,7 @@ export default function SuggestionCard({
                 {suggestion.status === 'in-progress' && (
                   <button
                     onClick={() => handleQuickStatusChange('completed')}
-                    className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                    className="px-3 py-1 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                     title="Mark as completed"
                   >
                     Complete

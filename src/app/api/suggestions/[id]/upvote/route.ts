@@ -21,7 +21,7 @@ export async function POST(
 
     await connectDB();
 
-    const suggestionId = params.id;
+    const suggestionId = await params.id;
 
     // Find the user in the database to get their MongoDB ObjectId
     const user = await User.findOne({ email: session.user.email });
@@ -85,7 +85,7 @@ export async function DELETE(
 
     await connectDB();
 
-    const suggestionId = params.id;
+    const suggestionId = await params.id;
 
     // Find the user in the database to get their MongoDB ObjectId
     const user = await User.findOne({ email: session.user.email });
@@ -143,7 +143,7 @@ export async function GET(
 
     await connectDB();
 
-    const suggestionId = params.id;
+    const suggestionId = await params.id;
 
     // Find the user in the database to get their MongoDB ObjectId
     const user = await User.findOne({ email: session.user.email });

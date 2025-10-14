@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession, signOut, signIn } from 'next-auth/react';
 import SuggestionForm from '@/components/SuggestionForm';
 import SuggestionList from '@/components/SuggestionList';
@@ -8,7 +8,7 @@ import SuggestionDashboard from '@/components/SuggestionDashboard';
 import CategoryManagement from '@/components/CategoryManagement';
 import { SuggestionFormData } from '@/lib/validations';
 import { ISuggestion } from '@/lib/models/Suggestion';
-import { MessageSquare, Users, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, Users, Shield, ChevronDown, ChevronUp, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 
 export default function Home() {
@@ -25,21 +25,25 @@ export default function Home() {
   const isAdmin = session?.user?.role === 'admin';
 
   // Force dashboard refresh when status changes
+  const [statusChangeTrigger, setStatusChangeTrigger] = useState(0);
+  
   const handleStatusChange = () => {
     // This will trigger a re-render of the dashboard component
-    // The dashboard will refetch its own data
+    setStatusChangeTrigger(prev => prev + 1);
   };
 
   // Fetch suggestions
-  const fetchSuggestions = async (isBackgroundRefresh = false) => {
+  const fetchSuggestions = useCallback(async (isBackgroundRefresh = false) => {
     try {
       if (isBackgroundRefresh) {
         setIsPolling(true);
       }
       
-      const response = await fetch('/api/suggestions');
+      console.log('Parent: fetchSuggestions called', { isBackgroundRefresh });
+      const response = await fetch('/api/suggestions?limit=100');
       if (response.ok) {
         const data = await response.json();
+        console.log('Parent: Setting suggestions', { count: data.suggestions?.length || 0 });
         setSuggestions(data.suggestions || []);
       }
     } catch (error) {
@@ -50,23 +54,71 @@ export default function Home() {
         setIsPolling(false);
       }
     }
-  };
+  }, []);
+
+  // Use refs to access current values without causing dependency issues
+  const suggestionsRef = useRef(suggestions);
+  const fetchSuggestionsRef = useRef(fetchSuggestions);
+  const handleStatusChangeRef = useRef(handleStatusChange);
+  
+  suggestionsRef.current = suggestions;
+  fetchSuggestionsRef.current = fetchSuggestions;
+  handleStatusChangeRef.current = handleStatusChange;
+
+  // Check for changes without fetching all data
+  const checkForChanges = useCallback(async () => {
+    try {
+      const response = await fetch('/api/suggestions/check-changes');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Compare with current suggestions using ref
+        const currentSuggestions = suggestionsRef.current;
+        const currentCount = currentSuggestions.length;
+        
+        // Simple comparison - if counts don't match, there are changes
+        const hasChanges = data.count !== currentCount;
+        
+        console.log('Polling check:', { 
+          currentCount, 
+          serverCount: data.count, 
+          hasChanges 
+        });
+        
+        // Only fetch full data if there are changes
+        if (hasChanges) {
+          console.log('Changes detected, fetching new data');
+          setIsPolling(true); // Set polling state only when fetching
+          await fetchSuggestionsRef.current(false); // Don't set polling state again
+          handleStatusChangeRef.current(); // Update dashboard stats
+          setIsPolling(false); // Reset polling state after fetch
+        } else {
+          console.log('No changes detected, skipping fetch');
+          // Don't call fetchSuggestions at all when no changes
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for changes:', error);
+    }
+  }, []); // No dependencies
 
   useEffect(() => {
+    console.log('Parent: useEffect running', { session: !!session });
     if (session) {
+      console.log('Parent: Initial fetchSuggestions call');
       fetchSuggestions();
       
-      // Set up polling every 10 seconds
+      // Set up polling every 5 seconds to check for changes
       const interval = setInterval(() => {
-        fetchSuggestions(true);
-      }, 10000);
+        checkForChanges();
+      }, 5000);
       
       // Cleanup interval on unmount
       return () => clearInterval(interval);
     } else {
       setIsLoading(false);
     }
-  }, [session]);
+  }, [session]); // Only depend on session
 
   // Handle suggestion submission
   const handleSuggestionSubmit = async (data: SuggestionFormData) => {
@@ -190,16 +242,15 @@ export default function Home() {
             {/* Hero Section */}
             <div className="text-center mb-16">
               <h1 className="text-5xl font-bold text-gray-900 mb-6">
-                Company Suggestion Box
+              Provenance Suggestion Box
               </h1>
               <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-                Your voice matters! Share ideas, report issues, and help shape the future of our company. 
-                Every suggestion is valuable and helps us continuously improve.
+              Your voice matters! Share ideas, raise issues, and help shape the future of our company. Every suggestion is valuable and helps us continuously improve.
               </p>
             </div>
 
             {/* Features Grid */}
-            <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="grid md:grid-cols-2 gap-8 mb-16">
               <div className="bg-white rounded-lg shadow-md p-6 text-center">
                 <div className="w-12 h-12 bg-[#4bdcf5]/10 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <svg className="w-6 h-6 text-[#4bdcf5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,18 +260,6 @@ export default function Home() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Share Ideas</h3>
                 <p className="text-gray-600">
                   Propose new features, improvements, or innovative solutions that could benefit our team and company.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-md p-6 text-center">
-                <div className="w-12 h-12 bg-[#472d72]/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-6 h-6 text-[#472d72]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Report Issues</h3>
-                <p className="text-gray-600">
-                  Help us identify problems, bugs, or areas that need attention to improve our work environment.
                 </p>
               </div>
 
@@ -244,7 +283,7 @@ export default function Home() {
                 <div className="text-center">
                   <div className="w-10 h-10 bg-[#4bdcf5] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">1</div>
                   <h3 className="font-semibold text-gray-900 mb-2">Sign In</h3>
-                  <p className="text-gray-600 text-sm">Use your company Microsoft account to access the platform</p>
+                  <p className="text-gray-600 text-sm">Use your work Microsoft account to access the platform</p>
                 </div>
                 <div className="text-center">
                   <div className="w-10 h-10 bg-[#472d72] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">2</div>
@@ -254,7 +293,7 @@ export default function Home() {
                 <div className="text-center">
                   <div className="w-10 h-10 bg-[#4bdcf5] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">3</div>
                   <h3 className="font-semibold text-gray-900 mb-2">Track</h3>
-                  <p className="text-gray-600 text-sm">Monitor the status of your suggestions in real-time</p>
+                  <p className="text-gray-600 text-sm">Monitor the status of your suggestions in real-time, Others can upvote your suggestion.</p>
                 </div>
                 <div className="text-center">
                   <div className="w-10 h-10 bg-[#472d72] text-white rounded-full flex items-center justify-center mx-auto mb-4 text-lg font-bold">4</div>
@@ -286,73 +325,126 @@ export default function Home() {
           </div>
         ) : (
           // Main Application
-          <div className="space-y-8">
-            {/* Universal Dashboard */}
-            <SuggestionDashboard />
+          <div className="space-y-12">
+            {/* Hero Section */}
+           
 
-            {/* Admin Category Management */}
-            {isAdmin && (
-              <div className="bg-white rounded-lg shadow-md mb-8">
-                <button
-                  onClick={() => setIsCategoryManagementOpen(!isCategoryManagementOpen)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                  <h2 className="text-xl font-bold text-gray-900">Category Management</h2>
-                  {isCategoryManagementOpen ? (
-                    <ChevronUp className="h-5 w-5 text-gray-500" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-gray-500" />
-                  )}
-                </button>
-                {isCategoryManagementOpen && (
-                  <div className="px-6 pb-6">
-                    <CategoryManagement />
-                  </div>
-                )}
+            {/* Dashboard Section */}
+            <section className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-8 shadow-lg border border-gray-100">
+              <div className="flex items-center mb-6">
+                <div className="w-8 h-8 bg-[#4bdcf5] rounded-lg flex items-center justify-center mr-3">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-gray-900">Dashboard Overview</h2>
               </div>
+              <SuggestionDashboard onStatusChange={handleStatusChange} isPolling={isPolling} />
+            </section>
+
+            {/* Admin Tools Section */}
+            {isAdmin && (
+              <section className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-br from-[#4bdcf5] to-[#472d72] px-8 py-6">
+                  <div className="flex items-center">
+                    <Shield className="h-6 w-6 text-white mr-3" />
+                    <h2 className="text-2xl font-bold text-white">Admin Tools</h2>
+                  </div>
+                </div>
+                <div className="p-8">
+                  <div className="">
+                    <button
+                      onClick={() => setIsCategoryManagementOpen(!isCategoryManagementOpen)}
+                      className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-white transition-colors rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-[#4bdcf5]/10 rounded-lg flex items-center justify-center mr-4">
+                          <Users className="h-5 w-5 text-[#4bdcf5]" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">Category Management</h3>
+                          <p className="text-sm text-gray-600">Organize and manage suggestion categories</p>
+                        </div>
+                      </div>
+                      {isCategoryManagementOpen ? (
+                        <ChevronUp className="h-5 w-5 text-gray-500" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-gray-500" />
+                      )}
+                    </button>
+                    {isCategoryManagementOpen && (
+                      <div className="mt-6">
+                        <CategoryManagement />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
             )}
 
-            {/* Welcome Message */}
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Suggestion Management
-              </h2>
-              <p className="text-gray-600">
-                {isAdmin 
-                  ? 'Review and manage all submitted suggestions'
-                  : 'Track your suggestions and share new ideas to help improve our platform'
-                }
-              </p>
-            </div>
-
-            {/* Suggestion Form */}
-            <div className="bg-white rounded-lg shadow-md mb-8">
-              <button
-                onClick={() => setIsSuggestionFormOpen(!isSuggestionFormOpen)}
-                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-              >
-                <h2 className="text-xl font-bold text-gray-900">Submit a Suggestion</h2>
-                {isSuggestionFormOpen ? (
-                  <ChevronUp className="h-5 w-5 text-gray-500" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-gray-500" />
-                )}
-              </button>
-              {isSuggestionFormOpen && (
-                <div className="px-6 pb-6">
-                  <SuggestionForm onSubmit={handleSuggestionSubmit} />
+            {/* Action Section */}
+            <section >
+              {/* Submit Suggestion Card */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+                <div className="bg-gradient-to-br from-[#4bdcf5] to-[#472d72] px-8 py-6">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3">
+                      <MessageSquare className="h-5 w-5 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-white">Submit a Suggestion</h2>
+                  </div>
                 </div>
-              )}
-            </div>
+                <div className="p-6">
+                  <button
+                    onClick={() => setIsSuggestionFormOpen(!isSuggestionFormOpen)}
+                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors rounded-lg border border-gray-200"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-[#4bdcf5]/10 rounded-lg flex items-center justify-center mr-4">
+                        <MessageSquare className="h-5 w-5 text-[#4bdcf5]" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Share Your Ideas</h3>
+                        <p className="text-sm text-gray-600">Submit new suggestions and improvements</p>
+                      </div>
+                    </div>
+                    {isSuggestionFormOpen ? (
+                      <ChevronUp className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-500" />
+                    )}
+                  </button>
+                  {isSuggestionFormOpen && (
+                    <div className="mt-6">
+                      <SuggestionForm onSubmit={handleSuggestionSubmit} />
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            {/* Suggestions List */}
-            <SuggestionList
-              suggestions={suggestions}
-              onRefresh={fetchSuggestions}
-              onUpdate={isAdmin ? handleSuggestionUpdate : undefined}
-              onDelete={isAdmin ? handleSuggestionDelete : undefined}
-              onStatusChange={handleStatusChange}
-            />
+          
+            </section>
+
+            {/* Suggestions List Section */}
+            <section className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+              <div className="bg-gradient-to-br from-[#4bdcf5] to-[#472d72] px-8 py-6 border-b border-gray-200">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3">
+                    <MessageSquare className="h-5 w-5 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white">All Suggestions</h2>
+                </div>
+              </div>
+              <div className="p-8">
+                <SuggestionList
+                  suggestions={suggestions}
+                  onRefresh={fetchSuggestions}
+                  onUpdate={isAdmin ? handleSuggestionUpdate : undefined}
+                  onDelete={isAdmin ? handleSuggestionDelete : undefined}
+                  onStatusChange={handleStatusChange}
+                  isBackgroundRefresh={isPolling}
+                  isLoading={isLoading}
+                />
+              </div>
+            </section>
           </div>
         )}
       </main>

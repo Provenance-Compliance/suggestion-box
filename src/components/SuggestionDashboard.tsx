@@ -13,7 +13,12 @@ interface DashboardStats {
   completed: number;
 }
 
-export default function SuggestionDashboard() {
+interface SuggestionDashboardProps {
+  onStatusChange?: () => void;
+  isPolling?: boolean;
+}
+
+export default function SuggestionDashboard({ onStatusChange, isPolling = false }: SuggestionDashboardProps) {
   const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats>({
     total: 0,
@@ -31,16 +36,15 @@ export default function SuggestionDashboard() {
   useEffect(() => {
     if (session) {
       fetchStats();
-      
-      // Set up polling every 10 seconds
-      const interval = setInterval(() => {
-        fetchStats(true);
-      }, 10000);
-      
-      // Cleanup interval on unmount
-      return () => clearInterval(interval);
     }
   }, [session]);
+
+  // Update stats when parent indicates changes
+  useEffect(() => {
+    if (onStatusChange) {
+      fetchStats();
+    }
+  }, [onStatusChange]);
 
   const fetchStats = async (isBackgroundRefresh = false) => {
     try {
@@ -69,7 +73,7 @@ export default function SuggestionDashboard() {
 
   const statCards = [
     {
-      title: 'Total Suggestions',
+      title: 'Total',
       value: stats.total,
       icon: TrendingUp,
       color: 'bg-[#4bdcf5]',
@@ -77,7 +81,7 @@ export default function SuggestionDashboard() {
       bgColor: 'bg-[#4bdcf5]/10',
     },
     {
-      title: 'Pending Review',
+      title: 'Pending',
       value: stats.pending,
       icon: Clock,
       color: 'bg-yellow-500',
@@ -120,25 +124,7 @@ export default function SuggestionDashboard() {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Suggestion Dashboard
-        </h2>
-        <button
-          onClick={() => fetchStats()}
-          disabled={isRefreshing}
-          className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 flex items-center"
-        >
-          {isRefreshing ? (
-            <>
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600 mr-2"></div>
-              Refreshing...
-            </>
-          ) : (
-            'Refresh'
-          )}
-        </button>
-      </div>
+     
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {statCards.map((stat, index) => {
@@ -146,20 +132,22 @@ export default function SuggestionDashboard() {
           return (
             <div
               key={index}
-              className={`${stat.bgColor} rounded-lg p-4 border border-gray-200`}
+              className={`flex bg-white rounded-lg p-4 border border-gray-200 items-start`}
             >
-              <div className="flex items-center">
-                <div className={`${stat.color} p-2 rounded-md`}>
+              <div className="flex flex-col items-start justify-center w-full">
+                <div className="flex items-center justify-start min-w-full gap-2 bg-gradient-to-br from-[#4bdcf5] to-[#472d72] p-2 rounded-md">
+         
                   <Icon className="h-5 w-5 text-white" />
-                </div>
-                <div className="ml-3">
-                  <p className={`text-sm font-medium ${stat.textColor}`}>
+             
+                  <p className={`text-sm font-bold text-white tracking-wide`}>
                     {stat.title}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900">
+           
+                </div>
+             
+                  <p className="text-3xl font-extrabold text-gray-900 mt-4 ml-4">
                     {stat.value}
                   </p>
-                </div>
               </div>
             </div>
           );
