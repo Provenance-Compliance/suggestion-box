@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { suggestionSchema, SuggestionFormData } from '@/lib/validations';
 import { ICategory } from '@/lib/models/Category';
 import { Send, AlertCircle, CheckCircle } from 'lucide-react';
+import CharacterCounter from './CharacterCounter';
 
 interface SuggestionFormProps {
   onSubmit: (data: SuggestionFormData) => Promise<void>;
@@ -22,6 +23,7 @@ export default function SuggestionForm({ onSubmit }: SuggestionFormProps) {
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm<SuggestionFormData>({
     resolver: zodResolver(suggestionSchema),
     defaultValues: {
@@ -29,6 +31,9 @@ export default function SuggestionForm({ onSubmit }: SuggestionFormProps) {
       isAnonymous: true,
     },
   });
+
+  const watchedTitle = watch('title', '');
+  const watchedContent = watch('content', '');
 
   useEffect(() => {
     fetchCategories();
@@ -94,6 +99,9 @@ export default function SuggestionForm({ onSubmit }: SuggestionFormProps) {
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] focus:border-[#4bdcf5] text-gray-900"
             placeholder="Brief title for your suggestion"
           />
+          <div className="mt-1 flex justify-end">
+            <CharacterCounter current={watchedTitle.length} max={200} />
+          </div>
           {errors.title && (
             <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
           )}
@@ -110,6 +118,9 @@ export default function SuggestionForm({ onSubmit }: SuggestionFormProps) {
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] focus:border-[#4bdcf5] text-gray-900"
             placeholder="Describe your suggestion in detail..."
           />
+          <div className="mt-1 flex justify-end">
+            <CharacterCounter current={watchedContent.length} max={2000} />
+          </div>
           {errors.content && (
             <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
           )}
@@ -132,7 +143,7 @@ export default function SuggestionForm({ onSubmit }: SuggestionFormProps) {
             >
               <option value="">Select a category</option>
               {categories.map((category) => (
-                <option key={category._id.toString()} value={category._id.toString()}>
+                <option key={category._id?.toString() || category.name} value={category._id?.toString() || ''}>
                   {category.name}
                 </option>
               ))}

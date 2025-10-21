@@ -17,6 +17,7 @@ import {
   ThumbsUp
 } from 'lucide-react';
 import CommentSection, { CommentButton } from './CommentSection';
+import CharacterCounter from './CharacterCounter';
 
 interface SuggestionCardProps {
   suggestion: ISuggestion & { 
@@ -63,20 +64,30 @@ export default function SuggestionCard({
     try {
       await onUpdate((suggestion as any)._id.toString(), editStatus, editNotes);
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating suggestion:', error);
+      // Handle specific error cases
+      if (error.message?.includes('not found') || error.message?.includes('deleted')) {
+        console.error('Suggestion was deleted by another user');
+        // Could show a toast notification here
+      }
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const handleDelete = async () => {
+    const handleDelete = async () => {
     if (!onDelete || !confirm('Are you sure you want to delete this suggestion?')) return;
     
     try {
       await onDelete((suggestion as any)._id.toString());
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting suggestion:', error);
+      // Handle specific error cases
+      if (error.message?.includes('not found') || error.message?.includes('already deleted')) {
+        console.error('Suggestion was already deleted by another user');
+        // Could show a toast notification here
+      }
     }
   };
 
@@ -85,8 +96,13 @@ export default function SuggestionCard({
     
     try {
       await onUpdate((suggestion as any)._id.toString(), newStatus);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating suggestion status:', error);
+      // Handle specific error cases
+      if (error.message?.includes('not found') || error.message?.includes('deleted')) {
+        console.error('Suggestion was deleted by another user');
+        // Could show a toast notification here
+      }
     }
   };
 
@@ -127,6 +143,15 @@ export default function SuggestionCard({
         const data = await response.json();
         setUpvoteCount(data.upvoteCount);
         setHasUpvoted(!hasUpvoted);
+      } else {
+        const errorData = await response.json();
+        console.error('Upvote error:', errorData.error);
+        // Handle specific error cases
+        if (response.status === 404) {
+          console.error('Suggestion not found - may have been deleted');
+        } else if (response.status === 400) {
+          console.error('Already upvoted or invalid request');
+        }
       }
     } catch (error) {
       console.error('Error upvoting suggestion:', error);
@@ -311,6 +336,9 @@ export default function SuggestionCard({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] focus:border-[#4bdcf5] text-gray-900"
                   placeholder="Add admin notes..."
                 />
+                <div className="mt-1 flex justify-end">
+                  <CharacterCounter current={editNotes.length} max={1000} />
+                </div>
               </div>
             </div>
           ) : (
@@ -353,7 +381,7 @@ export default function SuggestionCard({
 
       {/* Comments Section */}
       <CommentSection 
-        suggestionId={suggestion._id.toString()} 
+        suggestionId={suggestion._id?.toString() || ''} 
         isAdmin={isAdmin}
         showComments={showComments}
         onCommentCountChange={handleCommentCountChange}

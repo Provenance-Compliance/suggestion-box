@@ -4,6 +4,7 @@ import { z } from 'zod';
 import connectDB from '@/lib/mongodb';
 import Suggestion from '@/lib/models/Suggestion';
 import Upvote from '@/lib/models/Upvote';
+import Comment from '@/lib/models/Comment';
 import { authOptions } from '@/lib/auth';
 
 const updateSchema = z.object({
@@ -46,7 +47,7 @@ export async function GET(
     });
 
     // Filter out submittedBy data for anonymous suggestions
-    const suggestionObj = suggestion.toObject();
+    const suggestionObj = suggestion.toObject() as any;
     if (suggestionObj.isAnonymous) {
       delete suggestionObj.submittedBy;
     }
@@ -83,6 +84,16 @@ export async function PUT(
     await connectDB();
 
     const { id } = await params;
+    
+    // Check if suggestion exists before updating
+    const existingSuggestion = await Suggestion.findById(id);
+    if (!existingSuggestion) {
+      return NextResponse.json(
+        { error: 'Suggestion not found or has been deleted' },
+        { status: 404 }
+      );
+    }
+
     const suggestion = await Suggestion.findByIdAndUpdate(
       id,
       { status, adminNotes },
@@ -91,8 +102,8 @@ export async function PUT(
 
     if (!suggestion) {
       return NextResponse.json(
-        { error: 'Suggestion not found' },
-        { status: 404 }
+        { error: 'Suggestion was deleted during update' },
+        { status: 410 } // Gone status for deleted resource
       );
     }
 
@@ -102,7 +113,7 @@ export async function PUT(
     });
 
     // Filter out submittedBy data for anonymous suggestions
-    const suggestionObj = suggestion.toObject();
+    const suggestionObj = suggestion.toObject() as any;
     if (suggestionObj.isAnonymous) {
       delete suggestionObj.submittedBy;
     }
@@ -146,20 +157,45 @@ export async function DELETE(
     await connectDB();
 
     const { id } = await params;
-    const suggestion = await Suggestion.findByIdAndDelete(id);
-
-    if (!suggestion) {
+    
+    // Check if suggestion exists before attempting deletion
+    const existingSuggestion = await Suggestion.findById(id);
+    if (!existingSuggestion) {
       return NextResponse.json(
-        { error: 'Suggestion not found' },
+        { error: 'Suggestion not found or already deleted' },
         { status: 404 }
       );
     }
 
+    const suggestion = await Suggestion.findByIdAndDelete(id);
+
+    if (!suggestion) {
+      return NextResponse.json(
+        { error: 'Suggestion was already deleted by another user' },
+        { status: 410 } // Gone status
+      );
+    }
+
+    // Also clean up related data
+    await Promise.all([
+      Upvote.deleteMany({ suggestion: id }),
+      Comment.deleteMany({ suggestion: id })
+    ]);
+
     return NextResponse.json({
       message: 'Suggestion deleted successfully',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting suggestion:', error);
+    
+    // Handle specific error cases
+    if (error.name === 'CastError') {
+      return NextResponse.json(
+        { error: 'Invalid suggestion ID' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

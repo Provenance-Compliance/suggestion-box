@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,7 +21,8 @@ export async function POST(
 
     await connectDB();
 
-    const suggestionId = await params.id;
+    const { id } = await params;
+    const suggestionId = id;
 
     // Find the user in the database to get their MongoDB ObjectId
     const user = await User.findOne({ email: session.user.email });
@@ -45,23 +46,48 @@ export async function POST(
       );
     }
 
-    // Create new upvote
-    const upvote = await Upvote.create({
-      suggestion: suggestionId,
-      user: user._id,
-    });
+    // Create new upvote with error handling for race conditions
+    try {
+      const upvote = await Upvote.create({
+        suggestion: suggestionId,
+        user: user._id,
+      });
 
-    // Get updated upvote count
-    const upvoteCount = await Upvote.countDocuments({
-      suggestion: suggestionId,
-    });
+      // Get updated upvote count
+      const upvoteCount = await Upvote.countDocuments({
+        suggestion: suggestionId,
+      });
 
-    return NextResponse.json({
-      success: true,
-      upvoteCount,
-    });
-  } catch (error) {
+      return NextResponse.json({
+        success: true,
+        upvoteCount,
+      });
+    } catch (createError: any) {
+      // Handle duplicate key error (race condition)
+      if (createError.code === 11000) {
+        // User already upvoted (race condition)
+        const upvoteCount = await Upvote.countDocuments({
+          suggestion: suggestionId,
+        });
+        return NextResponse.json({
+          success: true,
+          upvoteCount,
+          message: 'Already upvoted'
+        });
+      }
+      throw createError;
+    }
+  } catch (error: any) {
     console.error('Error upvoting suggestion:', error);
+    
+    // Handle specific error cases
+    if (error.name === 'CastError') {
+      return NextResponse.json(
+        { error: 'Invalid suggestion ID' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -71,7 +97,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -85,7 +111,8 @@ export async function DELETE(
 
     await connectDB();
 
-    const suggestionId = await params.id;
+    const { id } = await params;
+    const suggestionId = id;
 
     // Find the user in the database to get their MongoDB ObjectId
     const user = await User.findOne({ email: session.user.email });
@@ -102,14 +129,7 @@ export async function DELETE(
       user: user._id,
     });
 
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: 'Upvote not found' },
-        { status: 404 }
-      );
-    }
-
-    // Get updated upvote count
+    // Get updated upvote count regardless of whether upvote existed
     const upvoteCount = await Upvote.countDocuments({
       suggestion: suggestionId,
     });
@@ -117,9 +137,19 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
       upvoteCount,
+      message: result.deletedCount > 0 ? 'Upvote removed' : 'Upvote was already removed'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error removing upvote:', error);
+    
+    // Handle specific error cases
+    if (error.name === 'CastError') {
+      return NextResponse.json(
+        { error: 'Invalid suggestion ID' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -129,7 +159,7 @@ export async function DELETE(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -143,7 +173,8 @@ export async function GET(
 
     await connectDB();
 
-    const suggestionId = await params.id;
+    const { id } = await params;
+    const suggestionId = id;
 
     // Find the user in the database to get their MongoDB ObjectId
     const user = await User.findOne({ email: session.user.email });

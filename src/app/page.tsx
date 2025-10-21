@@ -18,7 +18,6 @@ export default function Home() {
     category?: { name: string; color: string };
   })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPolling, setIsPolling] = useState(false);
   const [isCategoryManagementOpen, setIsCategoryManagementOpen] = useState(false);
   const [isSuggestionFormOpen, setIsSuggestionFormOpen] = useState(false);
 
@@ -33,13 +32,9 @@ export default function Home() {
   };
 
   // Fetch suggestions
-  const fetchSuggestions = useCallback(async (isBackgroundRefresh = false) => {
+  const fetchSuggestions = useCallback(async () => {
     try {
-      if (isBackgroundRefresh) {
-        setIsPolling(true);
-      }
-      
-      console.log('Parent: fetchSuggestions called', { isBackgroundRefresh });
+      console.log('Parent: fetchSuggestions called');
       const response = await fetch('/api/suggestions?limit=100');
       if (response.ok) {
         const data = await response.json();
@@ -50,9 +45,6 @@ export default function Home() {
       console.error('Error fetching suggestions:', error);
     } finally {
       setIsLoading(false);
-      if (isBackgroundRefresh) {
-        setIsPolling(false);
-      }
     }
   }, []);
 
@@ -65,56 +57,10 @@ export default function Home() {
   fetchSuggestionsRef.current = fetchSuggestions;
   handleStatusChangeRef.current = handleStatusChange;
 
-  // Check for changes without fetching all data
-  const checkForChanges = useCallback(async () => {
-    try {
-      const response = await fetch('/api/suggestions/check-changes');
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Compare with current suggestions using ref
-        const currentSuggestions = suggestionsRef.current;
-        const currentCount = currentSuggestions.length;
-        
-        // Simple comparison - if counts don't match, there are changes
-        const hasChanges = data.count !== currentCount;
-        
-        console.log('Polling check:', { 
-          currentCount, 
-          serverCount: data.count, 
-          hasChanges 
-        });
-        
-        // Only fetch full data if there are changes
-        if (hasChanges) {
-          console.log('Changes detected, fetching new data');
-          setIsPolling(true); // Set polling state only when fetching
-          await fetchSuggestionsRef.current(false); // Don't set polling state again
-          handleStatusChangeRef.current(); // Update dashboard stats
-          setIsPolling(false); // Reset polling state after fetch
-        } else {
-          console.log('No changes detected, skipping fetch');
-          // Don't call fetchSuggestions at all when no changes
-        }
-      }
-    } catch (error) {
-      console.error('Error checking for changes:', error);
-    }
-  }, []); // No dependencies
 
   useEffect(() => {
-    console.log('Parent: useEffect running', { session: !!session });
     if (session) {
-      console.log('Parent: Initial fetchSuggestions call');
       fetchSuggestions();
-      
-      // Set up polling every 5 seconds to check for changes
-      const interval = setInterval(() => {
-        checkForChanges();
-      }, 5000);
-      
-      // Cleanup interval on unmount
-      return () => clearInterval(interval);
     } else {
       setIsLoading(false);
     }
@@ -149,7 +95,14 @@ export default function Home() {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to update suggestion');
+      const errorData = await response.json();
+      if (response.status === 404) {
+        throw new Error('Suggestion not found or has been deleted');
+      } else if (response.status === 410) {
+        throw new Error('Suggestion was deleted during update');
+      } else {
+        throw new Error(errorData.error || 'Failed to update suggestion');
+      }
     }
   };
 
@@ -160,7 +113,14 @@ export default function Home() {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to delete suggestion');
+      const errorData = await response.json();
+      if (response.status === 404) {
+        throw new Error('Suggestion not found or already deleted');
+      } else if (response.status === 410) {
+        throw new Error('Suggestion was already deleted by another user');
+      } else {
+        throw new Error(errorData.error || 'Failed to delete suggestion');
+      }
     }
   };
 
@@ -203,12 +163,6 @@ export default function Home() {
                   )}
                   <Users className="h-4 w-4 mr-1" />
                   <span>{session.user?.name || session.user?.email}</span>
-                  {isPolling && (
-                    <div className="ml-2 flex items-center text-xs text-gray-500">
-                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400 mr-1"></div>
-                      Auto-refreshing
-                    </div>
-                  )}
                 </div>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
@@ -337,7 +291,7 @@ export default function Home() {
                 </div>
                 <h2 className="text-3xl font-extrabold text-gray-900">Dashboard Overview</h2>
               </div>
-              <SuggestionDashboard onStatusChange={handleStatusChange} isPolling={isPolling} />
+              <SuggestionDashboard onStatusChange={handleStatusChange} statusChangeTrigger={statusChangeTrigger} />
             </section>
 
             {/* Admin Tools Section */}
@@ -440,7 +394,6 @@ export default function Home() {
                   onUpdate={isAdmin ? handleSuggestionUpdate : undefined}
                   onDelete={isAdmin ? handleSuggestionDelete : undefined}
                   onStatusChange={handleStatusChange}
-                  isBackgroundRefresh={isPolling}
                   isLoading={isLoading}
                 />
               </div>

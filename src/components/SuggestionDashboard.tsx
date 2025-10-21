@@ -15,10 +15,10 @@ interface DashboardStats {
 
 interface SuggestionDashboardProps {
   onStatusChange?: () => void;
-  isPolling?: boolean;
+  statusChangeTrigger?: number;
 }
 
-export default function SuggestionDashboard({ onStatusChange, isPolling = false }: SuggestionDashboardProps) {
+export default function SuggestionDashboard({ onStatusChange, statusChangeTrigger }: SuggestionDashboardProps) {
   const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats>({
     total: 0,
@@ -44,7 +44,7 @@ export default function SuggestionDashboard({ onStatusChange, isPolling = false 
     if (onStatusChange) {
       fetchStats();
     }
-  }, [onStatusChange]);
+  }, [statusChangeTrigger]); // Use a trigger instead of the function
 
   const fetchStats = async (isBackgroundRefresh = false) => {
     try {

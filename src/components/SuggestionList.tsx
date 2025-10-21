@@ -17,7 +17,6 @@ interface SuggestionListProps {
   onUpdate?: (id: string, status: string, adminNotes?: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onStatusChange?: () => void;
-  isBackgroundRefresh?: boolean;
   isLoading?: boolean;
 }
 
@@ -27,22 +26,14 @@ function SuggestionList({
   onUpdate, 
   onDelete,
   onStatusChange,
-  isBackgroundRefresh = false,
   isLoading = false
 }: SuggestionListProps) {
   const { data: session } = useSession();
   
-  // Debug logging
-  console.log('SuggestionList: Component rendered', { 
-    suggestionsCount: suggestions.length,
-    isBackgroundRefresh,
-    isLoading 
-  });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,7 +83,6 @@ function SuggestionList({
     
     // Quick length check first
     if (suggestions.length !== prevSuggestions.length) {
-      console.log('SuggestionList: Length changed, updating suggestions');
       prevSuggestionsRef.current = suggestions;
       setStableSuggestions(suggestions);
       return;
@@ -104,11 +94,8 @@ function SuggestionList({
     
     // If hashes are the same, no changes
     if (currentHash === prevHash) {
-      console.log('SuggestionList: No changes detected, skipping update');
       return;
     }
-    
-    console.log('SuggestionList: Changes detected, updating suggestions');
     
     // Create a merged array that only updates changed suggestions
     const mergedSuggestions = suggestions.map((newSuggestion, index) => {
@@ -213,15 +200,13 @@ function SuggestionList({
     return filtered;
   }, [stableSuggestions, searchTerm, statusFilter, categoryFilter, sortBy]);
 
-  // Handle loading animation for user-initiated changes only
+  // Handle loading animation for user-initiated changes
   useEffect(() => {
-    if (!isBackgroundRefresh) {
-      setIsSorting(true);
-      // Use a shorter timeout for better UX
-      const timer = setTimeout(() => setIsSorting(false), 100);
-      return () => clearTimeout(timer);
-    }
-  }, [searchTerm, statusFilter, categoryFilter, sortBy, isBackgroundRefresh]);
+    setIsSorting(true);
+    // Use a shorter timeout for better UX
+    const timer = setTimeout(() => setIsSorting(false), 100);
+    return () => clearTimeout(timer);
+  }, [searchTerm, statusFilter, categoryFilter, sortBy]);
 
   // Pagination logic
   const totalItems = filteredSuggestions.length;
@@ -239,27 +224,17 @@ function SuggestionList({
     setCurrentPage(1); // Reset to first page when changing items per page
   };
 
-  const handleRefresh = async (isBackgroundRefresh = false) => {
+  const handleRefresh = async () => {
     if (!onRefresh) return;
     
-    if (isBackgroundRefresh) {
-      setIsPolling(true);
-    } else {
-      setIsRefreshing(true);
-    }
-    
+    setIsRefreshing(true);
     try {
       await onRefresh();
     } finally {
-      if (isBackgroundRefresh) {
-        setIsPolling(false);
-      } else {
-        setIsRefreshing(false);
-      }
+      setIsRefreshing(false);
     }
   };
 
-  // Note: Polling is now handled by the parent component
 
   const handleUpdate = async (id: string, status: string, adminNotes?: string) => {
     if (!onUpdate) return;
@@ -386,12 +361,6 @@ function SuggestionList({
         <div className="flex items-center justify-between mb-4">
           <div className="text-sm text-gray-700">
             <span>Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} suggestions</span>
-            {isBackgroundRefresh && (
-              <span className="ml-2 inline-flex items-center text-[#4bdcf5]">
-                <span className="animate-spin rounded-full h-3 w-3 border-b border-[#4bdcf5] mr-1"></span>
-                Updating...
-              </span>
-            )}
           </div>
         </div>
       )}
@@ -519,7 +488,6 @@ export default memo(SuggestionList, (prevProps, nextProps) => {
   // Custom comparison function
   const suggestionsEqual = compareSuggestions(prevProps.suggestions, nextProps.suggestions);
   const otherPropsEqual = 
-    prevProps.isBackgroundRefresh === nextProps.isBackgroundRefresh &&
     prevProps.isLoading === nextProps.isLoading;
   
   const shouldSkipRender = suggestionsEqual && otherPropsEqual;
@@ -530,8 +498,6 @@ export default memo(SuggestionList, (prevProps, nextProps) => {
     shouldSkipRender,
     prevCount: prevProps.suggestions.length,
     nextCount: nextProps.suggestions.length,
-    prevBackground: prevProps.isBackgroundRefresh,
-    nextBackground: nextProps.isBackgroundRefresh
   });
   
   // Only rerender if suggestions actually changed or other props changed

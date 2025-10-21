@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { MessageCircle, Send, Lock, Eye, EyeOff, Trash2 } from 'lucide-react';
+import CharacterCounter from './CharacterCounter';
 
 interface Comment {
   _id: string;
@@ -262,6 +263,9 @@ export default function CommentSection({ suggestionId, isAdmin, showComments, on
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] focus:border-[#4bdcf5] text-gray-900 text-sm"
                   required
                 />
+                <div className="mt-1 flex justify-end">
+                  <CharacterCounter current={newComment.length} max={5000} />
+                </div>
               </div>
               
               <div className="flex items-center justify-between">
@@ -280,7 +284,7 @@ export default function CommentSection({ suggestionId, isAdmin, showComments, on
                 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !newComment.trim()}
+                  disabled={isSubmitting || !newComment.trim() || newComment.length > 5000}
                   className="flex items-center px-3 py-1 bg-[#4bdcf5] text-white rounded-md hover:bg-[#3bc4e0] focus:outline-none focus:ring-2 focus:ring-[#4bdcf5] disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 >
                   {isSubmitting ? (

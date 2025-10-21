@@ -4,10 +4,11 @@ import { z } from 'zod';
 import connectDB from '@/lib/mongodb';
 import Comment from '@/lib/models/Comment';
 import User from '@/lib/models/User';
+import Suggestion from '@/lib/models/Suggestion';
 import { authOptions } from '@/lib/auth';
 
 const commentSchema = z.object({
-  content: z.string().min(1, 'Comment is required').max(1000, 'Comment too long'),
+  content: z.string().min(1, 'Comment is required').max(5000, 'Comment too long'),
   isInternal: z.boolean().default(false),
 });
 
@@ -80,6 +81,15 @@ export async function POST(
 
     const { id } = await params;
 
+    // Check if suggestion exists before creating comment
+    const suggestion = await Suggestion.findById(id);
+    if (!suggestion) {
+      return NextResponse.json(
+        { error: 'Suggestion not found or has been deleted' },
+        { status: 404 }
+      );
+    }
+
     // Find the user in the database to get their MongoDB ObjectId
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
@@ -103,7 +113,7 @@ export async function POST(
       { message: 'Comment created successfully', comment },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation error', details: error.issues },
@@ -112,6 +122,15 @@ export async function POST(
     }
 
     console.error('Error creating comment:', error);
+    
+    // Handle specific error cases
+    if (error.name === 'CastError') {
+      return NextResponse.json(
+        { error: 'Invalid suggestion ID' },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
