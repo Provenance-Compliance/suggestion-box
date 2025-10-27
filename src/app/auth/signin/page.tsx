@@ -79,7 +79,7 @@ export default function SignInPage() {
               className="flex items-center justify-center text-sm text-gray-600 hover:text-gray-500"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to Suggestion Box
+              Back to Innovation Hub
             </a>
           </div>
         </div>

@@ -5,7 +5,9 @@ import connectDB from '@/lib/mongodb';
 import Suggestion from '@/lib/models/Suggestion';
 import User from '@/lib/models/User';
 import Upvote from '@/lib/models/Upvote';
+import Category from '@/lib/models/Category';
 import { authOptions } from '@/lib/auth';
+import { sendSuggestionNotification } from '@/lib/email';
 
 const suggestionSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
@@ -120,6 +122,23 @@ export async function POST(request: NextRequest) {
       isAnonymous,
       submittedBy: user._id,
     });
+
+    // Send email notification to admins
+    try {
+      const categoryDoc = await Category.findById(category);
+      const categoryName = categoryDoc?.name || 'Unknown Category';
+      
+      await sendSuggestionNotification({
+        title: suggestion.title,
+        content: suggestion.content,
+        category: categoryName,
+        submittedBy: user.name || user.email || 'Unknown User',
+        isAnonymous,
+      });
+    } catch (error) {
+      console.error('Error sending notification email:', error);
+      // Don't fail the request if email fails
+    }
 
     return NextResponse.json(
       { message: 'Suggestion created successfully', suggestion },

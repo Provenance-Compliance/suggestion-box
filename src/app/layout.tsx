@@ -11,7 +11,7 @@ const mavenPro = Maven_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'Suggestion Box',
+  title: 'Innovation Hub',
   description: 'Anonymous suggestion platform for feedback and ideas',
 };
 

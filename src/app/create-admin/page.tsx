@@ -113,7 +113,7 @@ export default function CreateAdminPage() {
             href="/" 
             className="text-blue-600 hover:text-blue-500 text-sm"
           >
-            ← Back to Suggestion Box
+            ← Back to Innovation Hub
           </a>
         </div>
       </div>

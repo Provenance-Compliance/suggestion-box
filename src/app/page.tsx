@@ -142,14 +142,14 @@ export default function Home() {
               <div className="w-40 h-10 mr-4 pr-4 border-r-2 border-gray-200 flex items-center">
                 <Image 
                   src="/prov-logo.png" 
-                  alt="Suggestion Box" 
+                  alt="Innovation Hub" 
                   width={160} 
                   height={160} 
                   className="object-contain w-full h-full"
                   priority
                 />
               </div>  
-              <h1 className="text-xs font-bold text-gray-900">SUGGESTION BOX</h1>
+              <h1 className="text-xs font-bold text-gray-900">INNOVATION HUB</h1>
             </div>
             
             {session ? (
@@ -196,7 +196,7 @@ export default function Home() {
             {/* Hero Section */}
             <div className="text-center mb-16">
               <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Provenance Suggestion Box
+              Provenance Innovation Hub
               </h1>
               <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
               Your voice matters! Share ideas, raise issues, and help shape the future of our company. Every suggestion is valuable and helps us continuously improve.
@@ -270,7 +270,7 @@ export default function Home() {
                 <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24">
                   <path fill="#472d72" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
                 </svg>
-                Access Suggestion Box
+                Access Innovation Hub
               </button>
               <p className="text-sm mt-4 opacity-75">
                 Internal company access only • Microsoft Entra ID required
@@ -406,7 +406,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-500">
-            <p>&copy; 2024 Provenance Compliance Suggestion Box</p>
+            <p>&copy; 2024 Provenance Compliance Innovation Hub</p>
           </div>
         </div>
       </footer>

@@ -16,6 +16,7 @@ A modern, full-featured suggestion management system built with Next.js 15, Auth
 - **Real-time Updates** - 10-second polling for live data
 - **Status Tracking** - Pending, Approved, Rejected, In Progress, Completed
 - **Admin Notes** - Admins can add notes to suggestions
+- **Email Notifications** - Admins receive email alerts when new suggestions are submitted
 
 ### 🏷️ Dynamic Category System
 - **Admin Category Management** - Create, edit, delete categories
@@ -39,6 +40,7 @@ A modern, full-featured suggestion management system built with Next.js 15, Auth
 - **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
 - **Authentication**: Auth.js (NextAuth.js)
 - **Database**: MongoDB with Mongoose ODM
+- **Email**: Brevo (Sendinblue) for notifications
 - **Validation**: Zod
 - **Forms**: React Hook Form
 - **Icons**: Lucide React
@@ -65,13 +67,25 @@ A modern, full-featured suggestion management system built with Next.js 15, Auth
    ```
 
 3. **Environment Setup**
-   Create a `.env.local` file in the root directory:
+   Create a `.env.local` file in the root directory. You can use the `env.example` file as a template:
    ```env
-   MONGODB_URI=mongodb://localhost:27017/suggestion-box
-   # or your MongoDB Atlas connection string
+   # Database Configuration
+   MONGODB_URI=mongodb://localhost:27017/innovation-hub
+   
+   # Authentication
    AUTH_SECRET=your-secret-key-here
-   AUTH_URL=http://localhost:3000
    NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your-secret-key-here
+   
+   # Azure AD / Microsoft Entra ID
+   AZURE_AD_CLIENT_ID=your-client-id
+   AZURE_AD_CLIENT_SECRET=your-client-secret
+   AZURE_AD_TENANT_ID=your-tenant-id
+   
+   # Email Notifications (Optional)
+   BREVO_API_KEY=xkeysib-YOUR_API_KEY_HERE
+   ADMIN_NOTIFICATION_EMAIL=admin@yourcompany.com
+   SENDER_EMAIL=noreply@yourcompany.com
    ```
 
 4. **Generate AUTH_SECRET**
@@ -90,6 +104,32 @@ A modern, full-featured suggestion management system built with Next.js 15, Auth
 
 6. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
+
+### 📧 Email Notifications Setup (Optional)
+
+To enable email notifications when new suggestions are submitted:
+
+1. **Create a Brevo account**
+   - Sign up at [https://www.brevo.com/](https://www.brevo.com/)
+   - Free tier includes 300 emails/day
+
+2. **Get your API key**
+   - Go to [https://app.brevo.com/settings/keys/api](https://app.brevo.com/settings/keys/api)
+   - Create a new API key
+   - Copy the key (starts with `xkeysib-`)
+
+3. **Verify your sender email**
+   - Go to [https://app.brevo.com/settings/domain](https://app.brevo.com/settings/domain)
+   - Add and verify your sender email domain or single email
+
+4. **Update your `.env.local` file**
+   ```env
+   BREVO_API_KEY=xkeysib-YOUR_API_KEY_HERE
+   ADMIN_NOTIFICATION_EMAIL=admin@yourcompany.com
+   SENDER_EMAIL=noreply@yourcompany.com
+   ```
+
+**Note**: Email notifications are optional. If `BREVO_API_KEY` is not set, the system will work normally without sending emails.
 
 ### 🎯 First Time Setup
 
